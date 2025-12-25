@@ -10,6 +10,7 @@ export default function Header() {
   const navigation = [
     { name: "Home", href: "/" },
     { name: "Transcribe", href: "/transcribe" },
+    { name: "Templates", href: "/templates" },
     { name: "History", href: "/history" },
   ];
 
