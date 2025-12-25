@@ -26,7 +26,11 @@ function TranscribeContent() {
   >("professional");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en-US");
 
-  const toneOptions = [
+  const toneOptions: Array<{
+    value: "professional" | "formal" | "casual" | "friendly";
+    label: string;
+    icon: string;
+  }> = [
     { value: "professional", label: "Professional", icon: "💼" },
     { value: "casual", label: "Casual", icon: "😊" },
     { value: "formal", label: "Formal", icon: "🎩" },
