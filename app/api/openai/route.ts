@@ -15,11 +15,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY environment variable is not set");
       return NextResponse.json(
-        { error: "OpenAI API key not configured" },
+        {
+          error:
+            "OpenAI API key not configured. Please add OPENAI_API_KEY to your .env.local file and restart the server.",
+        },
         { status: 500 }
       );
     }
+
+    console.log(
+      "OpenAI API Key loaded:",
+      process.env.OPENAI_API_KEY?.substring(0, 20) + "..."
+    );
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -46,7 +55,7 @@ export async function POST(request: NextRequest) {
     prompt = `${prompt} Use a ${tone} tone and writing style.`;
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -66,8 +75,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ transformedText });
   } catch (error) {
     console.error("OpenAI API error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to transform text" },
+      { error: `Failed to transform text: ${errorMessage}` },
       { status: 500 }
     );
   }

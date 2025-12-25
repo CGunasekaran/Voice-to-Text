@@ -31,11 +31,63 @@ function TranscribeContent() {
     { value: "friendly", label: "Friendly", icon: "🤝" },
   ];
 
+  // Get template format based on selected type
+  const getTemplateFormat = (type: ConversionType): string => {
+    const formats: Record<string, string> = {
+      email: `Subject: [Your Subject]
+
+Dear [Recipient Name],
+
+[Your message will appear here as you speak...]
+
+Best regards,
+[Your Name]`,
+      letter: `[Date]
+
+[Recipient Name]
+[Address Line 1]
+[Address Line 2]
+
+Dear [Recipient Name],
+
+[Your letter content will appear here as you speak...]
+
+Sincerely,
+[Your Name]`,
+      blog: `# [Blog Title]
+
+## Introduction
+[Your introduction will appear here...]
+
+## Main Content
+[Your main points will appear here as you speak...]
+
+## Conclusion
+[Your conclusion will appear here...]`,
+      story: `[Your story will unfold here as you speak...]
+
+Once upon a time...`,
+      notes: `# Notes - ${new Date().toLocaleDateString()}
+
+## Key Points:
+• [Your notes will appear here as you speak...]`,
+    };
+    return formats[type] || "";
+  };
+
   const handleTranscript = (text: string) => {
     if (!startTime) {
       setStartTime(Date.now());
     }
     setTranscript(text);
+
+    // If this is the first transcript and we have a template format, merge it
+    if (text && !transcript && selectedType !== "transcription") {
+      const format = getTemplateFormat(selectedType);
+      if (format) {
+        setTransformedText(format);
+      }
+    }
   };
 
   const handleTransform = async () => {
@@ -47,36 +99,50 @@ function TranscribeContent() {
     setIsTransforming(true);
 
     try {
-      // Check if it's a custom template
-      const customTemplates = JSON.parse(
-        localStorage.getItem("customTemplates") || "[]"
-      );
-      const customTemplate = customTemplates.find(
-        (t: any) => t.id === selectedType
-      );
+      let transformed = "";
 
-      // Call OpenAI API for transformation
-      const response = await fetch("/api/openai", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: transcript,
-          type: selectedType,
-          customPrompt: customTemplate?.prompt,
+      // Check if OpenAI API key is configured
+      const hasOpenAI = process.env.NEXT_PUBLIC_USE_OPENAI === "true";
+
+      if (hasOpenAI) {
+        // Try OpenAI transformation if enabled
+        const customTemplates = JSON.parse(
+          localStorage.getItem("customTemplates") || "[]"
+        );
+        const customTemplate = customTemplates.find(
+          (t: any) => t.id === selectedType
+        );
+
+        const response = await fetch("/api/openai", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: transcript,
+            type: selectedType,
+            customPrompt: customTemplate?.prompt,
+            tone: selectedTone,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Transformation failed");
+        }
+
+        transformed = data.transformedText;
+        setTransformedText(transformed);
+        toast.success("Text transformed with AI!");
+      } else {
+        // Use basic transformation (free)
+        transformed = TextTransformer.transform(transcript, selectedType, {
           tone: selectedTone,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Transformation failed");
+        });
+        setTransformedText(transformed);
+        toast.success("Text transformed successfully!");
       }
-
-      const data = await response.json();
-      const transformed = data.transformedText;
-
-      setTransformedText(transformed);
 
       // Save to history
       const duration = startTime
@@ -96,20 +162,31 @@ function TranscribeContent() {
       });
 
       setIsTransforming(false);
-      toast.success("Text transformed successfully!");
     } catch (error) {
       console.error("Transformation error:", error);
-      // Fallback to local transformation if API fails
-      const transformed = TextTransformer.transform(transcript, selectedType);
+
+      // Fallback to basic transformation
+      const transformed = TextTransformer.transform(transcript, selectedType, {
+        tone: selectedTone,
+      });
       setTransformedText(transformed);
       setIsTransforming(false);
-      toast.error("AI transformation unavailable, using basic transformation");
+      toast.success("Using basic transformation (free)");
     }
   };
 
   const handleTypeChange = (type: ConversionType) => {
     setSelectedType(type);
     setTransformedText("");
+    setTranscript("");
+
+    // Show template format immediately when template is selected
+    if (type !== "transcription") {
+      const format = getTemplateFormat(type);
+      if (format) {
+        setTransformedText(format);
+      }
+    }
   };
 
   return (
@@ -181,9 +258,12 @@ function TranscribeContent() {
               content={transformedText || transcript}
               onChange={setTransformedText}
               placeholder={
-                transcript
-                  ? 'Click "Transform" to convert your speech...'
-                  : "Start recording to see your text here..."
+                selectedType === "transcription"
+                  ? "Start recording to see your text here..."
+                  : `${
+                      selectedType.charAt(0).toUpperCase() +
+                      selectedType.slice(1)
+                    } template will appear here. Start recording to begin...`
               }
               onTransform={handleTransform}
               isTransforming={isTransforming}
