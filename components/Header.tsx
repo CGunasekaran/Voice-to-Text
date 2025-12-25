@@ -15,7 +15,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-lg shadow-black/5">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600/90 via-pink-500/90 to-indigo-600/90 backdrop-blur-xl border-b border-white/30 shadow-xl shadow-purple-500/20">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
