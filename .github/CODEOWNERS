@@ -1,0 +1,11 @@
+# CODEOWNERS file
+# This file defines the code owners for this repository
+# Only the listed code owners can approve changes to the codebase
+
+# Global code owner - all files in the repository
+* @CGunasekaran
+
+# Specific paths (optional - uncomment if needed)
+# /app/* @CGunasekaran
+# /components/* @CGunasekaran
+# /lib/* @CGunasekaran
