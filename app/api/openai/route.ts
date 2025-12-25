@@ -3,7 +3,12 @@ import OpenAI from "openai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, type } = await request.json();
+    const {
+      text,
+      type,
+      customPrompt,
+      tone = "professional",
+    } = await request.json();
 
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
@@ -34,7 +39,11 @@ export async function POST(request: NextRequest) {
         "Transcribe and clean up the following speech with proper punctuation and formatting:",
     };
 
-    const prompt = prompts[type] || prompts.transcription;
+    // Use custom prompt if provided, otherwise use built-in prompts
+    let prompt = customPrompt || prompts[type] || prompts.transcription;
+
+    // Add tone instruction
+    prompt = `${prompt} Use a ${tone} tone and writing style.`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4",

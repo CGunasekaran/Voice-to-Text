@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { ConversionType } from "@/types";
 import { templates } from "@/data/templates";
 import {
@@ -9,7 +12,17 @@ import {
   Clipboard,
   CheckSquare,
   Share2,
+  Plus,
 } from "lucide-react";
+import Link from "next/link";
+
+interface CustomTemplate {
+  id: string;
+  name: string;
+  prompt: string;
+  description: string;
+  color: string;
+}
 
 const iconMap: Record<string, any> = {
   mic: Mic,
@@ -53,43 +66,106 @@ export default function TemplateSelector({
   selected,
   onSelect,
 }: TemplateSelectorProps) {
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("customTemplates");
+    if (saved) {
+      setCustomTemplates(JSON.parse(saved));
+    }
+  }, []);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {templates.map((template) => {
-        const Icon = iconMap[template.icon];
-        const isSelected = selected === template.id;
+    <div className="space-y-4">
+      {/* Built-in Templates */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-3">
+          Built-in Templates
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {templates.map((template) => {
+            const Icon = iconMap[template.icon];
+            const isSelected = selected === template.id;
 
-        return (
-          <button
-            key={template.id}
-            onClick={() => onSelect(template.id)}
-            className={`text-left p-6 rounded-xl border-2 transition-all ${
-              bgColorMap[template.color]
-            } ${
-              isSelected
-                ? "border-blue-600 shadow-lg scale-105"
-                : "border-gray-200 hover:border-gray-300 hover:shadow-md"
-            }`}
-          >
-            <div
-              className={`w-12 h-12 rounded-lg bg-gradient-to-br ${
-                colorMap[template.color]
-              } flex items-center justify-center mb-4`}
-            >
-              <Icon className="w-6 h-6 text-white" />
-            </div>
+            return (
+              <button
+                key={template.id}
+                onClick={() => onSelect(template.id)}
+                className={`text-left p-6 rounded-xl border-2 transition-all ${
+                  bgColorMap[template.color]
+                } ${
+                  isSelected
+                    ? "border-blue-600 shadow-lg scale-105"
+                    : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                }`}
+              >
+                <div
+                  className={`w-12 h-12 rounded-lg bg-gradient-to-br ${
+                    colorMap[template.color]
+                  } flex items-center justify-center mb-4`}
+                >
+                  <Icon className="w-6 h-6 text-white" />
+                </div>
 
-            <h3 className="font-bold text-gray-900 mb-2">{template.name}</h3>
-            <p className="text-sm text-gray-600">{template.description}</p>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  {template.name}
+                </h3>
+                <p className="text-sm text-gray-600">{template.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-            {isSelected && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-xs font-medium text-blue-600">✓ Selected</p>
-              </div>
-            )}
-          </button>
-        );
-      })}
+      {/* Custom Templates */}
+      {customTemplates.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-3">
+            Your Custom Templates
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {customTemplates.map((template) => {
+              const isSelected = selected === (template.id as ConversionType);
+
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => onSelect(template.id as ConversionType)}
+                  className={`text-left p-6 rounded-xl border-2 transition-all bg-white ${
+                    isSelected
+                      ? "border-blue-600 shadow-lg scale-105"
+                      : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                  }`}
+                >
+                  <div
+                    className={`w-12 h-12 rounded-lg ${template.color} flex items-center justify-center mb-4`}
+                  >
+                    <div className="w-6 h-6 bg-white/30 rounded" />
+                  </div>
+
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    {template.name}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {template.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Create Template Button */}
+      <div className="flex justify-center pt-4">
+        <Link
+          href="/templates"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-lg text-white rounded-lg hover:bg-white/20 transition-all border border-white/20"
+        >
+          <Plus className="w-5 h-5" />
+          Create Custom Template
+        </Link>
+      </div>
     </div>
   );
 }

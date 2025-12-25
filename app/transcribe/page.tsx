@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import VoiceRecorder from "@/components/VoiceRecorder";
 import TemplateSelector from "@/components/TemplateSelector";
 import TextEditor from "@/components/TextEditor";
+import LanguageSelector from "@/components/LanguageSelector";
 import { ConversionType } from "@/types";
 import { TextTransformer } from "@/lib/text-transformer";
 import { StorageService } from "@/lib/storage";
@@ -20,6 +21,15 @@ function TranscribeContent() {
   const [transformedText, setTransformedText] = useState("");
   const [isTransforming, setIsTransforming] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
+  const [selectedTone, setSelectedTone] = useState<string>("professional");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("en-US");
+
+  const toneOptions = [
+    { value: "professional", label: "Professional", icon: "💼" },
+    { value: "casual", label: "Casual", icon: "😊" },
+    { value: "formal", label: "Formal", icon: "🎩" },
+    { value: "friendly", label: "Friendly", icon: "🤝" },
+  ];
 
   const handleTranscript = (text: string) => {
     if (!startTime) {
@@ -28,7 +38,7 @@ function TranscribeContent() {
     setTranscript(text);
   };
 
-  const handleTransform = () => {
+  const handleTransform = async () => {
     if (!transcript.trim()) {
       toast.error("Please record some speech first");
       return;
@@ -36,9 +46,36 @@ function TranscribeContent() {
 
     setIsTransforming(true);
 
-    // Simulate async transformation (in production, call AI API)
-    setTimeout(() => {
-      const transformed = TextTransformer.transform(transcript, selectedType);
+    try {
+      // Check if it's a custom template
+      const customTemplates = JSON.parse(
+        localStorage.getItem("customTemplates") || "[]"
+      );
+      const customTemplate = customTemplates.find(
+        (t: any) => t.id === selectedType
+      );
+
+      // Call OpenAI API for transformation
+      const response = await fetch("/api/openai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: transcript,
+          type: selectedType,
+          customPrompt: customTemplate?.prompt,
+          tone: selectedTone,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Transformation failed");
+      }
+
+      const data = await response.json();
+      const transformed = data.transformedText;
+
       setTransformedText(transformed);
 
       // Save to history
@@ -60,7 +97,14 @@ function TranscribeContent() {
 
       setIsTransforming(false);
       toast.success("Text transformed successfully!");
-    }, 1000);
+    } catch (error) {
+      console.error("Transformation error:", error);
+      // Fallback to local transformation if API fails
+      const transformed = TextTransformer.transform(transcript, selectedType);
+      setTransformedText(transformed);
+      setIsTransforming(false);
+      toast.error("AI transformation unavailable, using basic transformation");
+    }
   };
 
   const handleTypeChange = (type: ConversionType) => {
@@ -90,14 +134,42 @@ function TranscribeContent() {
           />
         </div>
 
+        {/* Tone Selector */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">Select Tone</h2>
+          <div className="flex flex-wrap gap-3">
+            {toneOptions.map((tone) => (
+              <button
+                key={tone.value}
+                onClick={() => setSelectedTone(tone.value)}
+                className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                  selectedTone === tone.value
+                    ? "bg-white text-purple-600 shadow-lg scale-105"
+                    : "bg-white/10 backdrop-blur-lg text-white border border-white/20 hover:bg-white/20"
+                }`}
+              >
+                <span className="text-xl">{tone.icon}</span>
+                {tone.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Voice Recorder */}
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4">
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-white">
               Step 1: Record Your Voice
             </h2>
-            <VoiceRecorder onTranscript={handleTranscript} />
+            <LanguageSelector
+              selectedLanguage={selectedLanguage}
+              onLanguageChange={setSelectedLanguage}
+            />
+            <VoiceRecorder
+              onTranscript={handleTranscript}
+              language={selectedLanguage}
+            />
           </div>
 
           {/* Transformed Text */}
