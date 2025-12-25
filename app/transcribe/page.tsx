@@ -21,7 +21,9 @@ function TranscribeContent() {
   const [transformedText, setTransformedText] = useState("");
   const [isTransforming, setIsTransforming] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
-  const [selectedTone, setSelectedTone] = useState<string>("professional");
+  const [selectedTone, setSelectedTone] = useState<
+    "professional" | "formal" | "casual" | "friendly"
+  >("professional");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en-US");
 
   const toneOptions = [
